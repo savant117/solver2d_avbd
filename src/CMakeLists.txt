@@ -27,6 +27,7 @@ set(S2D_SOURCE_FILES
 	revolute_joint.c
 	shape.c
 	shape.h
+	solve_avbd.c
 	solve_common.c
 	solve_pgs.c
 	solve_pgs_ngs.c

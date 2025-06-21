@@ -33,6 +33,11 @@ typedef struct s2Vec2
 	float x, y;
 } s2Vec2;
 
+typedef struct s2Vec3
+{
+	float x, y, z;
+} s2Vec3;
+
 typedef struct s2Rot
 {
 	// sine and cosine
@@ -50,6 +55,12 @@ typedef struct s2Mat22
 	/// columns
 	s2Vec2 cx, cy;
 } s2Mat22;
+
+typedef struct s2Mat33
+{
+	/// columns
+	s2Vec3 cx, cy, cz;
+} s2Mat33;
 
 typedef struct s2Box
 {

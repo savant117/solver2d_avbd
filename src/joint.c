@@ -172,6 +172,8 @@ s2JointId s2CreateMouseJoint(s2WorldId worldId, const s2MouseJointDef* def)
 	joint->mouseJoint.targetA = def->target;
 	joint->mouseJoint.hertz = def->hertz;
 	joint->mouseJoint.dampingRatio = def->dampingRatio;
+	joint->mouseJoint.impulse = s2Vec2_zero;
+	joint->mouseJoint.penalty = s2Vec2_zero;
 
 	s2JointId jointId = {joint->object.index, world->index, joint->object.revision};
 
@@ -199,6 +201,7 @@ s2JointId s2CreateRevoluteJoint(s2WorldId worldId, const s2RevoluteJointDef* def
 
 	joint->revoluteJoint.referenceAngle = def->referenceAngle;
 	joint->revoluteJoint.impulse = s2Vec2_zero;
+	joint->revoluteJoint.penalty = s2Vec2_zero;
 	joint->revoluteJoint.axialMass = 0.0f;
 	joint->revoluteJoint.motorImpulse = 0.0f;
 	joint->revoluteJoint.lowerImpulse = 0.0f;

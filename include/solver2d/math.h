@@ -43,6 +43,12 @@ static inline s2Vec2 s2MakeVec2(float x, float y)
 	return S2_LITERAL(s2Vec2){x, y};
 }
 
+/// Make a vector
+static inline s2Vec3 s2MakeVec3(float x, float y, float z)
+{
+	return S2_LITERAL(s2Vec3){x, y, z};
+}
+
 /// Vector dot product
 static inline float s2Dot(s2Vec2 a, s2Vec2 b)
 {
@@ -94,6 +100,12 @@ static inline s2Vec2 s2Sub(s2Vec2 a, s2Vec2 b)
 }
 
 /// Vector subtraction
+static inline s2Vec3 s2Sub3(s2Vec3 a, s2Vec3 b)
+{
+	return S2_LITERAL(s2Vec3){a.x - b.x, a.y - b.y, a.z - b.z};
+}
+
+/// Vector subtraction
 static inline s2Vec2 s2Neg(s2Vec2 a)
 {
 	return S2_LITERAL(s2Vec2){-a.x, -a.y};
@@ -111,10 +123,21 @@ static inline s2Vec2 s2Mul(s2Vec2 a, s2Vec2 b)
 	return S2_LITERAL(s2Vec2){a.x * b.x, a.y * b.y};
 }
 
+/// Component-wise multiplication
+static inline s2Vec3 s2Mul3(s2Vec3 a, s2Vec3 b)
+{
+	return S2_LITERAL(s2Vec3){a.x * b.x, a.y * b.y, a.z * b.z};
+}
+
 /// Multiply a scalar and vector
 static inline s2Vec2 s2MulSV(float s, s2Vec2 v)
 {
 	return S2_LITERAL(s2Vec2){s * v.x, s * v.y};
+}
+
+static inline s2Vec3 s2MulSV3(float s, s2Vec3 v)
+{
+	return S2_LITERAL(s2Vec3){s * v.x, s * v.y, s * v.z};
 }
 
 /// a + s * b
@@ -123,10 +146,32 @@ static inline s2Vec2 s2MulAdd(s2Vec2 a, float s, s2Vec2 b)
 	return S2_LITERAL(s2Vec2){a.x + s * b.x, a.y + s * b.y};
 }
 
+/// a + s * b
+static inline s2Vec3 s2MulAdd3(s2Vec3 a, float s, s2Vec3 b)
+{
+	return S2_LITERAL(s2Vec3){a.x + s * b.x, a.y + s * b.y, a.z + s * b.z};
+}
+
 /// a - s * b
 static inline s2Vec2 s2MulSub(s2Vec2 a, float s, s2Vec2 b)
 {
 	return S2_LITERAL(s2Vec2){a.x - s * b.x, a.y - s * b.y};
+}
+
+/// a + s * b * b^T
+static inline s2Mat33 s2AddScaledOuter(s2Mat33 a, float s, s2Vec3 b)
+{
+	s2Mat33 c;
+	c.cx.x = a.cx.x + s * b.x * b.x;
+	c.cx.y = a.cx.y + s * b.x * b.y;
+	c.cx.z = a.cx.z + s * b.x * b.z;
+	c.cy.x = a.cy.x + s * b.y * b.x;
+	c.cy.y = a.cy.y + s * b.y * b.y;
+	c.cy.z = a.cy.z + s * b.y * b.z;
+	c.cz.x = a.cz.x + s * b.z * b.x;
+	c.cz.y = a.cz.y + s * b.z * b.y;
+	c.cz.z = a.cz.z + s * b.z * b.z;
+	return c;
 }
 
 /// Component-wise absolute vector
@@ -148,6 +193,15 @@ static inline s2Vec2 s2Min(s2Vec2 a, s2Vec2 b)
 }
 
 /// Component-wise absolute vector
+static inline s2Vec2 s2MinSV(s2Vec2 a, float b)
+{
+	s2Vec2 c;
+	c.x = S2_MIN(a.x, b);
+	c.y = S2_MIN(a.y, b);
+	return c;
+}
+
+/// Component-wise absolute vector
 static inline s2Vec2 s2Max(s2Vec2 a, s2Vec2 b)
 {
 	s2Vec2 c;
@@ -162,6 +216,15 @@ static inline s2Vec2 s2Clamp(s2Vec2 v, s2Vec2 a, s2Vec2 b)
 	s2Vec2 c;
 	c.x = S2_CLAMP(v.x, a.x, b.x);
 	c.y = S2_CLAMP(v.y, a.y, b.y);
+	return c;
+}
+
+/// Component-wise clamp vector so v into the range [a, b]
+static inline s2Vec2 s2ClampSV(s2Vec2 v, float a, float b)
+{
+	s2Vec2 c;
+	c.x = S2_CLAMP(v.x, a, b);
+	c.y = S2_CLAMP(v.y, a, b);
 	return c;
 }
 

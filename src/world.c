@@ -246,6 +246,10 @@ void s2World_Step(s2WorldId worldId, float timeStep, int velIters, int posIters,
 				s2Solve_SoftStep(world, &context);
 				break;
 
+			case s2_solverAVBD:
+				s2Solve_AVBD(world, &context);
+				break;
+
 			default:
 				break;
 		}

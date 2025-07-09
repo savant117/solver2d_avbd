@@ -34,6 +34,7 @@ typedef struct s2MouseJoint
 	
 	// Solver shared
 	s2Vec2 impulse;
+	s2Vec2 penalty;
 	float motorImpulse;
 
 	float biasCoefficient;
@@ -45,12 +46,14 @@ typedef struct s2MouseJoint
 	float invIB;
 	s2Mat22 pivotMass;
 	s2Vec2 centerDiff0;
+	s2Vec2 c0;
 } s2MouseJoint;
 
 typedef struct s2RevoluteJoint
 {
 	// Solver shared
 	s2Vec2 impulse;
+	s2Vec2 penalty;
 	float motorImpulse;
 	float lowerImpulse;
 	float upperImpulse;
@@ -68,6 +71,7 @@ typedef struct s2RevoluteJoint
 	s2Vec2 localAnchorA;
 	s2Vec2 localAnchorB;
 	s2Vec2 centerDiff0;
+	s2Vec2 c0;
 	float invMassA;
 	float invMassB;
 	float invIA;

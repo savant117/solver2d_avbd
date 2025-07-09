@@ -39,6 +39,7 @@ s2BodyId s2CreateBody(s2WorldId worldId, const s2BodyDef* def)
 	b->angularVelocity = def->angularVelocity;
 	b->linearVelocity0 = def->linearVelocity;
 	b->angularVelocity0 = def->angularVelocity;
+	b->prevLinearVelocity = def->linearVelocity;
 	b->force = s2Vec2_zero;
 	b->torque = 0.0f;
 	b->shapeList = S2_NULL_INDEX;

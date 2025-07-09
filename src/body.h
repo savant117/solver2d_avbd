@@ -31,6 +31,10 @@ typedef struct s2Body
 	// delta position at the beginning of each sub-step
 	s2Vec2 deltaPosition0;
 
+	// inertial position for AVBD
+	s2Vec2 inertialPosition;
+	s2Rot inertialRot;
+
 	// rotation
 	s2Rot rot0;
 	s2Rot rot;
@@ -43,6 +47,8 @@ typedef struct s2Body
 
 	s2Vec2 linearVelocity0;
 	float angularVelocity0;
+
+	s2Vec2 prevLinearVelocity;
 
 	s2Vec2 force;
 	float torque;

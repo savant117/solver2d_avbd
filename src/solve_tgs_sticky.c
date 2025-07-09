@@ -60,8 +60,8 @@ static void s2PrepareContacts_Sticky(s2World* world, s2ContactConstraint* constr
 			cp->normalImpulse = 0.0f;
 			cp->tangentImpulse = 0.0f;
 
-			cp->localAnchorA = s2Sub(mp->localAnchorA, bodyA->localCenter);
-			cp->localAnchorB = s2Sub(mp->localAnchorB, bodyB->localCenter);
+			cp->localAnchorA = s2Sub(mp->localOriginAnchorA, bodyA->localCenter);
+			cp->localAnchorB = s2Sub(mp->localOriginAnchorB, bodyB->localCenter);
 			s2Vec2 rA = s2RotateVector(qA, cp->localAnchorA);
 			s2Vec2 rB = s2RotateVector(qB, cp->localAnchorB);
 
@@ -146,8 +146,8 @@ static void s2PrepareContacts_Sticky(s2World* world, s2ContactConstraint* constr
 
 				mp->frictionNormalA = s2InvRotateVector(qA, normal);
 				mp->frictionNormalB = s2InvRotateVector(qB, normal);
-				mp->frictionAnchorA = mp->localAnchorA;
-				mp->frictionAnchorB = mp->localAnchorB;
+				mp->frictionAnchorA = mp->localOriginAnchorA;
+				mp->frictionAnchorB = mp->localOriginAnchorB;
 
 				cp->localFrictionAnchorA = cp->localAnchorA;
 				cp->localFrictionAnchorB = cp->localAnchorB;

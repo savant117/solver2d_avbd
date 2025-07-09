@@ -514,7 +514,7 @@ void s2World_Draw(s2WorldId worldId, s2DebugDraw* draw)
 			for (int j = 0; j < pointCount; ++j)
 			{
 				s2ManifoldPoint* point = contact->manifold.points + j;
-				s2Vec2 worldPoint = s2TransformPoint(xfA, point->localAnchorA);
+				s2Vec2 worldPoint = s2TransformPoint(xfA, point->localOriginAnchorA);
 
 				if (point->separation > s2_linearSlop)
 				{

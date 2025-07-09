@@ -208,8 +208,8 @@ static s2ContactSolver s2CreateContactSolver(s2World* world, s2StepContext* cont
 				cp->tangentImpulse = 0.0f;
 			}
 
-			s2Vec2 localAnchorA = s2Sub(mp->localAnchorA, bodyA->localCenter);
-			s2Vec2 localAnchorB = s2Sub(mp->localAnchorB, bodyB->localCenter);
+			s2Vec2 localAnchorA = s2Sub(mp->localOriginAnchorA, bodyA->localCenter);
+			s2Vec2 localAnchorB = s2Sub(mp->localOriginAnchorB, bodyB->localCenter);
 			s2Vec2 rA = s2RotateVector(qA, localAnchorA);
 			s2Vec2 rB = s2RotateVector(qB, localAnchorB);
 

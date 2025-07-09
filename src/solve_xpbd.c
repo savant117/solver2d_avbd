@@ -58,8 +58,8 @@ static void s2PrepareContacts_XPBD(s2World* world, s2ContactConstraint* constrai
 			cp->normalImpulse = 0.0f;
 			cp->tangentImpulse = 0.0f;
 
-			cp->localAnchorA = s2Sub(mp->localAnchorA, bodyA->localCenter);
-			cp->localAnchorB = s2Sub(mp->localAnchorB, bodyB->localCenter);
+			cp->localAnchorA = s2Sub(mp->localOriginAnchorA, bodyA->localCenter);
+			cp->localAnchorB = s2Sub(mp->localOriginAnchorB, bodyB->localCenter);
 			s2Vec2 rA = s2RotateVector(qA, cp->localAnchorA);
 			s2Vec2 rB = s2RotateVector(qB, cp->localAnchorB);
 

@@ -39,8 +39,8 @@ s2Manifold s2CollideCircles(const s2Circle* circleA, s2Transform xfA, const s2Ci
 	s2Vec2 contactPointA = s2Lerp(cA, cB, 0.5f);
 
 	manifold.normal = s2RotateVector(xfA.q, normal);
-	manifold.points[0].localAnchorA = contactPointA;
-	manifold.points[0].localAnchorB = s2InvTransformPoint(xf, contactPointA);
+	manifold.points[0].localOriginAnchorA = contactPointA;
+	manifold.points[0].localOriginAnchorB = s2InvTransformPoint(xf, contactPointA);
 	manifold.points[0].separation = separation;
 	manifold.points[0].id = 0;
 	manifold.pointCount = 1;
@@ -102,8 +102,8 @@ s2Manifold s2CollideCapsuleAndCircle(const s2Capsule* capsuleA, s2Transform xfA,
 	s2Vec2 contactPointA = s2Lerp(cA, cB, 0.5f);
 
 	manifold.normal = s2RotateVector(xfA.q, normal);
-	manifold.points[0].localAnchorA = contactPointA;
-	manifold.points[0].localAnchorB = s2InvTransformPoint(xf, contactPointA);
+	manifold.points[0].localOriginAnchorA = contactPointA;
+	manifold.points[0].localOriginAnchorB = s2InvTransformPoint(xf, contactPointA);
 	manifold.points[0].separation = separation;
 	manifold.points[0].id = 0;
 	manifold.pointCount = 1;
@@ -169,8 +169,8 @@ s2Manifold s2CollidePolygonAndCircle(const s2Polygon* polygonA, s2Transform xfA,
 		s2Vec2 contactPointA = s2Lerp(cA, cB, 0.5f);
 
 		manifold.normal = s2RotateVector(xfA.q, normal);
-		manifold.points[0].localAnchorA = contactPointA;
-		manifold.points[0].localAnchorB = s2InvTransformPoint(xf, contactPointA);
+		manifold.points[0].localOriginAnchorA = contactPointA;
+		manifold.points[0].localOriginAnchorB = s2InvTransformPoint(xf, contactPointA);
 		manifold.points[0].separation = s2Dot(s2Sub(cB, cA), normal);
 		manifold.points[0].id = 0;
 		manifold.pointCount = 1;
@@ -190,8 +190,8 @@ s2Manifold s2CollidePolygonAndCircle(const s2Polygon* polygonA, s2Transform xfA,
 		s2Vec2 contactPointA = s2Lerp(cA, cB, 0.5f);
 
 		manifold.normal = s2RotateVector(xfA.q, normal);
-		manifold.points[0].localAnchorA = contactPointA;
-		manifold.points[0].localAnchorB = s2InvTransformPoint(xf, contactPointA);
+		manifold.points[0].localOriginAnchorA = contactPointA;
+		manifold.points[0].localOriginAnchorB = s2InvTransformPoint(xf, contactPointA);
 		manifold.points[0].separation = s2Dot(s2Sub(cB, cA), normal);
 		manifold.points[0].id = 0;
 		manifold.pointCount = 1;
@@ -211,8 +211,8 @@ s2Manifold s2CollidePolygonAndCircle(const s2Polygon* polygonA, s2Transform xfA,
 		s2Vec2 contactPointA = s2Lerp(cA, cB, 0.5f);
 
 		// The contact point is the midpoint in world space
-		manifold.points[0].localAnchorA = contactPointA;
-		manifold.points[0].localAnchorB = s2InvTransformPoint(xf, contactPointA);
+		manifold.points[0].localOriginAnchorA = contactPointA;
+		manifold.points[0].localOriginAnchorB = s2InvTransformPoint(xf, contactPointA);
 		manifold.points[0].separation = separation - radius;
 		manifold.points[0].id = 0;
 		manifold.pointCount = 1;
@@ -344,7 +344,7 @@ static s2Manifold s2ClipPolygons(const s2Polygon* polyA, const s2Polygon* polyB,
 		s2ManifoldPoint* cp = manifold.points + 0;
 
 		{
-			cp->localAnchorA = vLower;
+			cp->localOriginAnchorA = vLower;
 			cp->separation = separationLower - radius;
 			if (cp->separation < -0.5f)
 			{
@@ -356,7 +356,7 @@ static s2Manifold s2ClipPolygons(const s2Polygon* polyA, const s2Polygon* polyB,
 		}
 
 		{
-			cp->localAnchorA = vUpper;
+			cp->localOriginAnchorA = vUpper;
 			cp->separation = separationUpper - radius;
 			if (cp->separation < -0.5f)
 			{
@@ -372,7 +372,7 @@ static s2Manifold s2ClipPolygons(const s2Polygon* polyA, const s2Polygon* polyB,
 		s2ManifoldPoint* cp = manifold.points + 0;
 
 		{
-			cp->localAnchorA = vUpper;
+			cp->localOriginAnchorA = vUpper;
 			cp->separation = separationUpper - radius;
 			if (cp->separation < -0.5f)
 			{
@@ -384,7 +384,7 @@ static s2Manifold s2ClipPolygons(const s2Polygon* polyA, const s2Polygon* polyB,
 		}
 
 		{
-			cp->localAnchorA = vLower;
+			cp->localOriginAnchorA = vLower;
 			cp->separation = separationLower - radius;
 			if (cp->separation < -0.5f)
 			{
@@ -549,7 +549,7 @@ s2Manifold s2CollidePolygons(const s2Polygon* polyA, s2Transform xfA, const s2Po
 			manifold.normal = s2RotateVector(xfA.q, manifold.normal);
 			for (int i = 0; i < manifold.pointCount; ++i)
 			{
-				manifold.points[i].localAnchorB = s2InvTransformPoint(xf, manifold.points[i].localAnchorA);
+				manifold.points[i].localOriginAnchorB = s2InvTransformPoint(xf, manifold.points[i].localOriginAnchorA);
 			}
 		}
 
@@ -568,8 +568,8 @@ s2Manifold s2CollidePolygons(const s2Polygon* polyA, s2Transform xfA, const s2Po
 
 		manifold.normal = s2RotateVector(xfA.q, normal);
 		s2ManifoldPoint* cp = manifold.points + 0;
-		cp->localAnchorA = contactPointA;
-		cp->localAnchorB = s2InvTransformPoint(xf, contactPointA);
+		cp->localOriginAnchorA = contactPointA;
+		cp->localOriginAnchorB = s2InvTransformPoint(xf, contactPointA);
 		cp->separation = distance - radius;
 		cp->id = S2_MAKE_ID(cache->indexA[0], cache->indexB[0]);
 		manifold.pointCount = 1;
@@ -642,7 +642,7 @@ s2Manifold s2CollidePolygons(const s2Polygon* polyA, s2Transform xfA, const s2Po
 		manifold.normal = s2RotateVector(xfA.q, manifold.normal);
 		for (int i = 0; i < manifold.pointCount; ++i)
 		{
-			manifold.points[i].localAnchorB = s2InvTransformPoint(xf, manifold.points[i].localAnchorA);
+			manifold.points[i].localOriginAnchorB = s2InvTransformPoint(xf, manifold.points[i].localOriginAnchorA);
 		}
 	}
 

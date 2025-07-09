@@ -19,6 +19,9 @@ typedef struct s2SmoothSegment s2SmoothSegment;
 typedef struct s2ManifoldPoint
 {
 	// local anchors relative to body origin
+	s2Vec2 localOriginAnchorA;
+	s2Vec2 localOriginAnchorB;
+
 	s2Vec2 localAnchorA;
 	s2Vec2 localAnchorB;
 
@@ -31,7 +34,7 @@ typedef struct s2ManifoldPoint
 	float separation;
 	float normalImpulse;
 	float tangentImpulse;
-	float penalty;
+	s2Vec2 penalty;
 	s2Vec2 c0;
 	uint16_t id;
 

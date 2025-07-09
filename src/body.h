@@ -27,13 +27,14 @@ typedef struct s2Body
 
 	// delta position for the whole time step
 	s2Vec2 deltaPosition;
+	float deltaRot;
 
 	// delta position at the beginning of each sub-step
 	s2Vec2 deltaPosition0;
 
-	// inertial position for AVBD
-	s2Vec2 inertialPosition;
-	s2Rot inertialRot;
+	// delta inertial position for AVBD
+	s2Vec2 deltaInertialPosition;
+	float deltaInertialRot;
 
 	// rotation
 	s2Rot rot0;

@@ -35,7 +35,6 @@ typedef struct s2ManifoldPoint
 	float normalImpulse;
 	float tangentImpulse;
 	s2Vec2 penalty;
-	s2Vec2 c0;
 	uint16_t id;
 
 	bool persisted;

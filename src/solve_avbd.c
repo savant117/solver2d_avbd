@@ -12,21 +12,13 @@
 
 #include <stdbool.h>
 
-#define PENALTY_MIN 1000.0f
+#define PENALTY_MIN 10000.0f
 #define PENALTY_MAX 10000000.0f
 #define LAMBDA_MAX 10000000.0f
-#define ALLOWED_PENETRATION 0.00025f
-#define BAUMGARTE
-
-#ifdef BAUMGARTE
-	// These only matter when using baumgarte
-	#define BETA 1000000.0f
-	#define ALPHA 0.99f
-	#define GAMMA 0.99f
-#else
-	#define BETA 2.0f
-	#define ALPHA 0.9f
-#endif
+#define ALLOWED_PENETRATION s2_linearSlop
+#define BETA 200000.0f
+#define ALPHA 0.95f
+#define GAMMA 0.99f
 
 static s2Vec3 solve_LDLT(s2Mat33 a, s2Vec3 b)
 {
@@ -98,26 +90,11 @@ void s2Solve_AVBD(s2World* world, s2StepContext* context)
 			point->localAnchorB = s2Sub(point->localOriginAnchorB, bodyB->localCenter);
 
 			// Warmstart
-			#ifdef BAUMGARTE
-				point->normalImpulse = ALPHA * GAMMA * point->normalImpulse;
-				point->tangentImpulse = ALPHA * GAMMA * point->tangentImpulse;
-				point->penalty.x = S2_CLAMP((GAMMA * point->penalty.x), PENALTY_MIN, PENALTY_MAX);
-				point->penalty.y = S2_CLAMP((GAMMA * point->penalty.y), PENALTY_MIN, PENALTY_MAX);
-			#else
-			point->penalty.x = S2_CLAMP(fabsf(point->normalImpulse) * BETA * inv_dt, PENALTY_MIN, PENALTY_MAX);
-			point->penalty.y = S2_CLAMP(fabsf(point->tangentImpulse) * BETA * inv_dt, PENALTY_MIN, PENALTY_MAX);
-			#endif
+			point->normalImpulse = ALPHA * GAMMA * point->normalImpulse;
+			point->tangentImpulse = ALPHA * GAMMA * point->tangentImpulse;
 
-			// Compute C(x-)
-			s2Vec2 rAW = s2Add(s2RotateVector(bodyA->rot, point->localAnchorA), bodyA->position);
-			s2Vec2 rBW = s2Add(s2RotateVector(bodyB->rot, point->localAnchorB), bodyB->position);
-
-			rAW = s2MulAdd(rAW, -point->separation, contact->manifold.normal);
-			rBW = s2MulAdd(rBW, point->separation, contact->manifold.normal);
-
-			s2Vec2 dp = s2Sub(rBW, rAW);
-			point->c0.x = s2Dot(dp, contact->manifold.normal) - ALLOWED_PENETRATION;
-			point->c0.y = s2Dot(dp, s2RightPerp(contact->manifold.normal));
+			point->penalty.x = S2_CLAMP((GAMMA * point->penalty.x), PENALTY_MIN, PENALTY_MAX);
+			point->penalty.y = S2_CLAMP((GAMMA * point->penalty.y), PENALTY_MIN, PENALTY_MAX);
 		}
 	}
 
@@ -139,19 +116,14 @@ void s2Solve_AVBD(s2World* world, s2StepContext* context)
 			joint->revoluteJoint.localAnchorB = s2Sub(joint->localOriginAnchorB, bodyB->localCenter);
 
 			// Warmstart
-			#ifdef BAUMGARTE
-				joint->revoluteJoint.impulse = s2MulSV(ALPHA * GAMMA, joint->revoluteJoint.impulse);
-				joint->revoluteJoint.penalty = s2ClampSV(s2MulSV(GAMMA, joint->revoluteJoint.penalty), PENALTY_MIN, PENALTY_MAX);
-			#else
-			joint->revoluteJoint.penalty =
-				s2ClampSV(s2MulSV(BETA * inv_dt, s2Abs(joint->revoluteJoint.impulse)), PENALTY_MIN, PENALTY_MAX);
-			#endif
+			joint->revoluteJoint.impulse = s2MulSV(ALPHA * GAMMA, joint->revoluteJoint.impulse);
+			joint->revoluteJoint.penalty = s2ClampSV(s2MulSV(GAMMA, joint->revoluteJoint.penalty), PENALTY_MIN, PENALTY_MAX);
 
 			// Compute C(x-)
-			s2Vec2 rAW = s2Add(s2RotateVector(bodyA->rot, joint->revoluteJoint.localAnchorA), bodyA->position);
-			s2Vec2 rBW = s2Add(s2RotateVector(bodyB->rot, joint->revoluteJoint.localAnchorB), bodyB->position);
+			s2Vec2 rA = s2RotateVector(bodyA->rot, joint->revoluteJoint.localAnchorA);
+			s2Vec2 rB = s2RotateVector(bodyB->rot, joint->revoluteJoint.localAnchorB);
 
-			joint->revoluteJoint.c0 = s2Sub(rBW, rAW);
+			joint->revoluteJoint.c0 = s2Add(s2Sub(rB, rA), s2Sub(bodyB->position, bodyA->position));
 		}
 		else if (joint->type == s2_mouseJoint)
 		{
@@ -160,13 +132,8 @@ void s2Solve_AVBD(s2World* world, s2StepContext* context)
 			joint->mouseJoint.localAnchorB = s2Sub(joint->localOriginAnchorB, bodyB->localCenter);
 
 			// Warmstart
-			#ifdef BAUMGARTE
-				joint->mouseJoint.impulse = s2MulSV(joint->mouseJoint.biasCoefficient * GAMMA, joint->mouseJoint.impulse);
-				joint->mouseJoint.penalty = s2ClampSV(s2MulSV(GAMMA, joint->mouseJoint.penalty), PENALTY_MIN, PENALTY_MAX);
-			#else
-			joint->mouseJoint.penalty =
-				s2ClampSV(s2MulSV(BETA * inv_dt, s2Abs(joint->mouseJoint.impulse)), PENALTY_MIN, PENALTY_MAX);
-			#endif
+			joint->mouseJoint.impulse = s2MulSV(joint->mouseJoint.biasCoefficient * GAMMA, joint->mouseJoint.impulse);
+			joint->mouseJoint.penalty = s2ClampSV(s2MulSV(GAMMA, joint->mouseJoint.penalty), PENALTY_MIN, PENALTY_MAX);
 
 			// Compute C(x-)
 			s2Vec2 rAW = joint->mouseJoint.targetA;
@@ -187,40 +154,25 @@ void s2Solve_AVBD(s2World* world, s2StepContext* context)
 
 		s2Vec2 gravity = s2MulSV(body->gravityScale, world->gravity);
 		s2Vec2 force = s2MulAdd(gravity, body->invMass, body->force);
-		body->inertialPosition = s2MulAdd(s2MulAdd(body->position, dt, body->linearVelocity), dt * dt, force);
-		body->inertialRot = s2IntegrateRot(body->rot, dt * (body->angularVelocity + body->invI * body->torque));
-
-		body->deltaPosition0 = body->position;
-		body->rot0 = body->rot;
+		body->deltaInertialPosition = s2MulAdd(s2MulSV(dt, body->linearVelocity), dt * dt, force);
+		body->deltaInertialRot =  dt * body->angularVelocity + dt * dt * body->invI * body->torque;
 
 		// Adaptive warmstart
 		float accelWeight = 1.0f;
-		if (s2LengthSquared(gravity) > 0)
+		if (s2LengthSquared(force) > 0)
 		{
 			s2Vec2 accel = s2MulSV(inv_dt, s2Sub(body->linearVelocity, body->prevLinearVelocity));
-			float accelExt = s2Dot(accel, s2Normalize(gravity));
-			float accelWeight = accelExt / s2Length(gravity);
+			float accelExt = s2Dot(accel, s2Normalize(force));
+			float accelWeight = accelExt / s2Length(force);
 			accelWeight = S2_CLAMP(accelWeight, 0.0f, 1.0f);
 		}
 
-		body->position = s2MulAdd(s2MulAdd(body->position, dt, body->linearVelocity), accelWeight * dt * dt, gravity);
-		body->rot = body->inertialRot;
+		body->deltaPosition = s2MulAdd(s2MulSV(dt, body->linearVelocity), accelWeight * dt * dt, force);
+		body->deltaRot = body->deltaInertialRot;
 	}
 
-	#ifdef BAUMGARTE
-	int totalIterations = context->iterations;
-	#else
-	int totalIterations = context->iterations + context->extraIterations;
-	#endif
-
-	for (int it = 0; it < totalIterations; ++it)
+	for (int it = 0; it < context->iterations; ++it)
 	{
-		#ifdef BAUMGARTE
-			float alpha = ALPHA;
-		#else
-			float alpha = it < context->iterations ? 1.0f : ALPHA;
-		#endif
-
 		// Primal update
 		for (int bi = 0; bi < bodyCapacity; ++bi)
 		{
@@ -236,10 +188,11 @@ void s2Solve_AVBD(s2World* world, s2StepContext* context)
 			lhs.cz.z = body->I * inv_dt * inv_dt;
 
 			s2Vec3 rhs = {body->mass * inv_dt2, body->mass * inv_dt2, body->I * inv_dt2};
-			s2Vec2 dp = s2Sub(body->position, body->inertialPosition);
-			rhs = s2Mul3(rhs, s2MakeVec3(dp.x, dp.y, s2ComputeAngularVelocity(body->rot, body->inertialRot, -1.0f)));
+			s2Vec2 dp = s2Sub(body->deltaPosition, body->deltaInertialPosition);
+			rhs = s2Mul3(rhs, s2MakeVec3(dp.x, dp.y, body->deltaRot - body->deltaInertialRot));
 
 			// Accumulate forces and hessian for contacts
+			// TODO iterate over only contacts connected to body
 			for (int i = 0; i < contactCapacity; ++i)
 			{
 				s2Contact* contact = contacts + i;
@@ -267,48 +220,60 @@ void s2Solve_AVBD(s2World* world, s2StepContext* context)
 					s2Vec2 rA = s2RotateVector(bodyA->rot, point->localAnchorA);
 					s2Vec2 rB = s2RotateVector(bodyB->rot, point->localAnchorB);
 
-					s2Vec2 rAW = s2Add(rA, bodyA->position);
-					s2Vec2 rBW = s2Add(rB, bodyB->position);
-
-					rAW = s2MulAdd(rAW, -point->separation, contact->manifold.normal);
-					rBW = s2MulAdd(rBW, point->separation, contact->manifold.normal);
-
 					s2Vec2 N = contact->manifold.normal;
 					s2Vec2 T = s2RightPerp(N);
 
-					s2Vec2 dp = s2Sub(rBW, rAW);
+					s2Vec3 J1A, J1B, J2A, J2B, J1, J2;
+					J1A = s2MakeVec3(-N.x, -N.y, -s2Cross(rA, N));
+					J1B = s2MakeVec3(N.x, N.y, s2Cross(rB, N));
+					J2A = s2MakeVec3(-T.x, -T.y, -s2Cross(rA, T));
+					J2B = s2MakeVec3(T.x, T.y, s2Cross(rB, T));
+
+					if (body == bodyA)
+					{
+						J1 = J1A;
+						J2 = J2A;
+					}
+					else
+					{
+						J1 = J1B;
+						J2 = J2B;
+					}
+
+					s2Vec3 dpA = s2MakeVec3(bodyA->deltaPosition.x, bodyA->deltaPosition.y, bodyA->deltaRot);
+					s2Vec3 dpB = s2MakeVec3(bodyB->deltaPosition.x, bodyB->deltaPosition.y, bodyB->deltaRot);
+
 					s2Vec2 C;
-					C.x = s2Dot(dp, N);
-					C.y = s2Dot(dp, T);
-					C = s2MulAdd(C, -alpha, point->c0);
+					C.x =
+						s2Dot3(J1A, dpA) + s2Dot3(J1B, dpB) + (point->separation + ALLOWED_PENETRATION) * (1 - ALPHA);
+					C.y = s2Dot3(J2A, dpA) + s2Dot3(J2B, dpB);
 
 					s2Vec2 F = s2Add(s2MakeVec2(point->normalImpulse, point->tangentImpulse), s2Mul(point->penalty, C));
 
 					F.x = S2_MIN(F.x, 0.0f);
 					float bounds = fabsf(F.x) * contact->friction;
-					F.y = S2_CLAMP(F.y, -bounds, bounds);
 
-					s2Vec3 J1, J2;
-					if (body == bodyA)
+					float kf = point->penalty.y;
+					if (F.y != 0)
 					{
-						J1 = s2MakeVec3(-N.x, -N.y, -s2Cross(rA, N));
-						J2 = s2MakeVec3(-T.x, -T.y, -s2Cross(rA, T));
+						if (F.y >= bounds)
+							kf = fabsf(bounds * point->penalty.y / F.y);
+						else if (F.y <= -bounds)
+							kf = fabsf(bounds * point->penalty.y / F.y);
 					}
-					else
-					{
-						J1 = s2MakeVec3(N.x, N.y, s2Cross(rB, N));
-						J2 = s2MakeVec3(T.x, T.y, s2Cross(rB, T));
-					}
+
+					F.y = S2_CLAMP(F.y, -bounds, bounds);
 
 					rhs = s2MulAdd3(rhs, F.x, J1);
 					rhs = s2MulAdd3(rhs, F.y, J2);
 
 					lhs = s2AddScaledOuter(lhs, point->penalty.x, J1);
-					lhs = s2AddScaledOuter(lhs, point->penalty.y, J2);
+					lhs = s2AddScaledOuter(lhs, kf, J2);
 				}
 			}
 
 			// Accumulate forces and hessian for joints
+			// TODO iterate over only joints connected to body
 			for (int i = 0; i < jointCapacity; ++i)
 			{
 				s2Joint* joint = joints + i;
@@ -327,13 +292,13 @@ void s2Solve_AVBD(s2World* world, s2StepContext* context)
 
 				if (joint->type == s2_revoluteJoint)
 				{
-					s2Vec2 rA = s2RotateVector(bodyA->rot, joint->revoluteJoint.localAnchorA);
-					s2Vec2 rB = s2RotateVector(bodyB->rot, joint->revoluteJoint.localAnchorB);
+					s2Vec2 rA = s2RotateVector(s2IntegrateRot(bodyA->rot, bodyA->deltaRot), joint->revoluteJoint.localAnchorA);
+					s2Vec2 rB = s2RotateVector(s2IntegrateRot(bodyB->rot, bodyB->deltaRot), joint->revoluteJoint.localAnchorB);
 
-					s2Vec2 rAW = s2Add(rA, bodyA->position);
-					s2Vec2 rBW = s2Add(rB, bodyB->position);
+					s2Vec2 rAW = s2Add(rA, bodyA->deltaPosition);
+					s2Vec2 rBW = s2Add(rB, bodyB->deltaPosition);
 
-					s2Vec2 C = s2MulAdd(s2Sub(rBW, rAW), -alpha, joint->revoluteJoint.c0);
+					s2Vec2 C = s2MulAdd(s2Add(s2Sub(rBW, rAW), s2Sub(bodyB->position, bodyA->position)), -ALPHA, joint->revoluteJoint.c0);
 
 					s2Vec2 F = s2Add(joint->revoluteJoint.impulse, s2Mul(joint->revoluteJoint.penalty, C));
 
@@ -366,10 +331,10 @@ void s2Solve_AVBD(s2World* world, s2StepContext* context)
 				}
 				else if (joint->type == s2_mouseJoint)
 				{
-					s2Vec2 rB = s2RotateVector(bodyB->rot, joint->mouseJoint.localAnchorB);
+					s2Vec2 rB = s2RotateVector(s2IntegrateRot(bodyB->rot, bodyB->deltaRot), joint->mouseJoint.localAnchorB);
 
 					s2Vec2 rAW = joint->mouseJoint.targetA;
-					s2Vec2 rBW = s2Add(rB, bodyB->position);
+					s2Vec2 rBW = s2Add(rB, s2Add(bodyB->position, bodyB->deltaPosition));
 
 					s2Vec2 C = s2MulAdd(s2Sub(rBW, rAW), -joint->mouseJoint.biasCoefficient, joint->mouseJoint.c0);
 
@@ -395,141 +360,134 @@ void s2Solve_AVBD(s2World* world, s2StepContext* context)
 
 			// Solve and update position
 			s2Vec3 dx = solve_LDLT(lhs, rhs);
-			body->position = s2Sub(body->position, s2MakeVec2(dx.x, dx.y));
-			body->rot = s2IntegrateRot(body->rot, -dx.z);
+			body->deltaPosition = s2Sub(body->deltaPosition, s2MakeVec2(dx.x, dx.y));
+			body->deltaRot -= dx.z;
 		}
 
-		// Dual update contacts on primary iterations
-		if (it < context->iterations)
+		// Dual update contacts
+		for (int i = 0; i < contactCapacity; ++i)
 		{
-			for (int i = 0; i < contactCapacity; ++i)
+			s2Contact* contact = contacts + i;
+			if (s2IsFree(&contact->object) || contact->manifold.pointCount == 0)
 			{
-				s2Contact* contact = contacts + i;
-				if (s2IsFree(&contact->object) || contact->manifold.pointCount == 0)
-				{
-					continue;
-				}
-
-				s2Body* bodyA = context->bodies + contact->edges[0].bodyIndex;
-				s2Body* bodyB = context->bodies + contact->edges[1].bodyIndex;
-
-				for (int j = 0; j < contact->manifold.pointCount; j++)
-				{
-					s2ManifoldPoint* point = contact->manifold.points + j;
-					if (point->separation > 0)
-					{
-						continue;
-					}
-
-					s2Vec2 rA = s2RotateVector(bodyA->rot, point->localAnchorA);
-					s2Vec2 rB = s2RotateVector(bodyB->rot, point->localAnchorB);
-
-					s2Vec2 rAW = s2Add(rA, bodyA->position);
-					s2Vec2 rBW = s2Add(rB, bodyB->position);
-
-					rAW = s2MulAdd(rAW, -point->separation, contact->manifold.normal);
-					rBW = s2MulAdd(rBW, point->separation, contact->manifold.normal);
-
-					s2Vec2 N = contact->manifold.normal;
-					s2Vec2 T = s2RightPerp(N);
-
-					s2Vec2 dp = s2Sub(rBW, rAW);
-					s2Vec2 C;
-					C.x = s2Dot(dp, N);
-					C.y = s2Dot(dp, T);
-					C = s2MulAdd(C, -alpha, point->c0);
-
-					s2Vec2 F = s2Add(s2MakeVec2(point->normalImpulse, point->tangentImpulse), s2Mul(point->penalty, C));
-
-					F.x = S2_MIN(F.x, 0.0f);
-					float bounds = fabsf(F.x) * contact->friction;
-					F.y = S2_CLAMP(F.y, -bounds, bounds);
-
-					point->normalImpulse = S2_CLAMP(F.x, -LAMBDA_MAX, LAMBDA_MAX);
-					point->tangentImpulse = S2_CLAMP(F.y, -LAMBDA_MAX, LAMBDA_MAX);
-
-#ifdef BAUMGARTE
-					if (F.x < 0)
-						point->penalty.x = S2_MIN((point->penalty.x + fabsf(C.x) * BETA), PENALTY_MAX);
-					if (F.y > -bounds && F.y < bounds)
-						point->penalty.y = S2_MIN((point->penalty.y + fabsf(C.y) * BETA), PENALTY_MAX);
-#endif
-				}
+				continue;
 			}
 
-			// Dual update joints
-			for (int i = 0; i < jointCapacity; ++i)
+			s2Body* bodyA = context->bodies + contact->edges[0].bodyIndex;
+			s2Body* bodyB = context->bodies + contact->edges[1].bodyIndex;
+
+			for (int j = 0; j < contact->manifold.pointCount; j++)
 			{
-				s2Joint* joint = joints + i;
-				if (s2IsFree(&joint->object))
+				s2ManifoldPoint* point = contact->manifold.points + j;
+				if (point->separation > 0)
 				{
 					continue;
 				}
 
-				if (joint->type == s2_revoluteJoint)
-				{
-					s2Body* bodyA = context->bodies + joint->edges[0].bodyIndex;
-					s2Body* bodyB = context->bodies + joint->edges[1].bodyIndex;
+				s2Vec2 rA = s2RotateVector(bodyA->rot, point->localAnchorA);
+				s2Vec2 rB = s2RotateVector(bodyB->rot, point->localAnchorB);
 
-					s2Vec2 rA = s2RotateVector(bodyA->rot, joint->revoluteJoint.localAnchorA);
-					s2Vec2 rB = s2RotateVector(bodyB->rot, joint->revoluteJoint.localAnchorB);
+				s2Vec2 N = contact->manifold.normal;
+				s2Vec2 T = s2RightPerp(N);
 
-					s2Vec2 rAW = s2Add(rA, bodyA->position);
-					s2Vec2 rBW = s2Add(rB, bodyB->position);
+				s2Vec3 J1A, J1B, J2A, J2B;
+				J1A = s2MakeVec3(-N.x, -N.y, -s2Cross(rA, N));
+				J1B = s2MakeVec3(N.x, N.y, s2Cross(rB, N));
+				J2A = s2MakeVec3(-T.x, -T.y, -s2Cross(rA, T));
+				J2B = s2MakeVec3(T.x, T.y, s2Cross(rB, T));
 
-					s2Vec2 C = s2MulAdd(s2Sub(rBW, rAW), -alpha, joint->revoluteJoint.c0);
+				s2Vec3 dpA = s2MakeVec3(bodyA->deltaPosition.x, bodyA->deltaPosition.y, bodyA->deltaRot);
+				s2Vec3 dpB = s2MakeVec3(bodyB->deltaPosition.x, bodyB->deltaPosition.y, bodyB->deltaRot);
 
-					joint->revoluteJoint.impulse = s2ClampSV(
-						s2Add(joint->revoluteJoint.impulse, s2Mul(joint->revoluteJoint.penalty, C)), -LAMBDA_MAX, LAMBDA_MAX);
+				s2Vec2 C;
+				C.x =
+					s2Dot3(J1A, dpA) + s2Dot3(J1B, dpB) + (point->separation + ALLOWED_PENETRATION) * (1 - ALPHA);
+				C.y = s2Dot3(J2A, dpA) + s2Dot3(J2B, dpB);
 
-#ifdef BAUMGARTE
-					joint->revoluteJoint.penalty = s2MinSV(s2MulAdd(joint->revoluteJoint.penalty, BETA, s2Abs(C)), PENALTY_MAX);
-#endif
-				}
-				else if (joint->type == s2_mouseJoint)
-				{
-					s2Body* bodyB = context->bodies + joint->edges[1].bodyIndex;
+				s2Vec2 F = s2Add(s2MakeVec2(point->normalImpulse, point->tangentImpulse), s2Mul(point->penalty, C));
 
-					s2Vec2 rB = s2RotateVector(bodyB->rot, joint->mouseJoint.localAnchorB);
+				F.x = S2_MIN(F.x, 0.0f);
+				float bounds = fabsf(F.x) * contact->friction;
+				F.y = S2_CLAMP(F.y, -bounds, bounds);
 
-					s2Vec2 rAW = joint->mouseJoint.targetA;
-					s2Vec2 rBW = s2Add(rB, bodyB->position);
+				point->normalImpulse = S2_CLAMP(F.x, -LAMBDA_MAX, LAMBDA_MAX);
+				point->tangentImpulse = S2_CLAMP(F.y, -LAMBDA_MAX, LAMBDA_MAX);
 
-					s2Vec2 C = s2MulAdd(s2Sub(rBW, rAW), -joint->mouseJoint.biasCoefficient, joint->mouseJoint.c0);
-
-					joint->mouseJoint.impulse =
-						s2ClampSV(s2Add(joint->mouseJoint.impulse, s2Mul(joint->mouseJoint.penalty, C)), -LAMBDA_MAX, LAMBDA_MAX);
-
-#ifdef BAUMGARTE
-					joint->mouseJoint.penalty = s2MinSV(s2MulAdd(joint->mouseJoint.penalty, BETA, s2Abs(C)), PENALTY_MAX);
-#endif
-				}
+				if (F.x < 0)
+					point->penalty.x = S2_MIN((point->penalty.x + fabsf(C.x) * BETA), PENALTY_MAX);
+				if (F.y > -bounds && F.y < bounds)
+					point->penalty.y = S2_MIN((point->penalty.y + fabsf(C.y) * BETA), PENALTY_MAX);
 			}
 		}
 
-		if (it == context->iterations - 1)
+		// Dual update joints
+		for (int i = 0; i < jointCapacity; ++i)
 		{
-			// Integration on last primary iteration
-			for (int i = 0; i < bodyCapacity; ++i)
+			s2Joint* joint = joints + i;
+			if (s2IsFree(&joint->object))
 			{
-				s2Body* body = bodies + i;
-				if (s2IsFree(&body->object))
-				{
-					continue;
-				}
+				continue;
+			}
 
-				if (body->type != s2_dynamicBody)
-				{
-					continue;
-				}
+			if (joint->type == s2_revoluteJoint)
+			{
+				s2Body* bodyA = context->bodies + joint->edges[0].bodyIndex;
+				s2Body* bodyB = context->bodies + joint->edges[1].bodyIndex;
 
-				body->prevLinearVelocity = body->linearVelocity;
-				body->linearVelocity = s2MulSV(inv_dt, s2Sub(body->position, body->deltaPosition0));
-				body->angularVelocity = s2ComputeAngularVelocity(body->rot, body->rot0, -inv_dt);
+				s2Vec2 rA = s2RotateVector(s2IntegrateRot(bodyA->rot, bodyA->deltaRot), joint->revoluteJoint.localAnchorA);
+				s2Vec2 rB = s2RotateVector(s2IntegrateRot(bodyB->rot, bodyB->deltaRot), joint->revoluteJoint.localAnchorB);
 
-				body->linearVelocity = s2MulSV(1.0f / (1.0f + dt * body->linearDamping), body->linearVelocity);
-				body->angularVelocity *= 1.0f / (1.0f + dt * body->angularDamping);
+				s2Vec2 rAW = s2Add(rA, bodyA->deltaPosition);
+				s2Vec2 rBW = s2Add(rB, bodyB->deltaPosition);
+
+				s2Vec2 C = s2MulAdd(s2Add(s2Sub(rBW, rAW), s2Sub(bodyB->position, bodyA->position)), -ALPHA, joint->revoluteJoint.c0);
+
+				joint->revoluteJoint.impulse = s2ClampSV(
+					s2Add(joint->revoluteJoint.impulse, s2Mul(joint->revoluteJoint.penalty, C)), -LAMBDA_MAX, LAMBDA_MAX);
+
+				joint->revoluteJoint.penalty = s2MinSV(s2MulAdd(joint->revoluteJoint.penalty, BETA, s2Abs(C)), PENALTY_MAX);
+			}
+			else if (joint->type == s2_mouseJoint)
+			{
+				s2Body* bodyB = context->bodies + joint->edges[1].bodyIndex;
+
+				s2Vec2 rB = s2RotateVector(s2IntegrateRot(bodyB->rot, bodyB->deltaRot), joint->mouseJoint.localAnchorB);
+
+				s2Vec2 rAW = joint->mouseJoint.targetA;
+				s2Vec2 rBW = s2Add(rB, s2Add(bodyB->position, bodyB->deltaPosition));
+
+				s2Vec2 C = s2MulAdd(s2Sub(rBW, rAW), -joint->mouseJoint.biasCoefficient, joint->mouseJoint.c0);
+
+				joint->mouseJoint.impulse =
+					s2ClampSV(s2Add(joint->mouseJoint.impulse, s2Mul(joint->mouseJoint.penalty, C)), -LAMBDA_MAX, LAMBDA_MAX);
+
+				joint->mouseJoint.penalty = s2MinSV(s2MulAdd(joint->mouseJoint.penalty, BETA, s2Abs(C)), PENALTY_MAX);
 			}
 		}
+	}
+
+	// Compute velocity and update positions
+	for (int i = 0; i < bodyCapacity; ++i)
+	{
+		s2Body* body = bodies + i;
+		if (s2IsFree(&body->object))
+		{
+			continue;
+		}
+
+		if (body->type != s2_dynamicBody)
+		{
+			continue;
+		}
+
+		body->prevLinearVelocity = body->linearVelocity;
+		body->linearVelocity = s2MulSV(inv_dt, body->deltaPosition);
+		body->angularVelocity = inv_dt * body->deltaRot;
+
+		body->linearVelocity = s2MulSV(1.0f / (1.0f + dt * body->linearDamping), body->linearVelocity);
+		body->angularVelocity *= 1.0f / (1.0f + dt * body->angularDamping);
+
+		body->position = s2Add(body->position, body->deltaPosition);
+		body->rot = s2IntegrateRot(body->rot, body->deltaRot);
 	}
 }

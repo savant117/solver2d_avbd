@@ -55,6 +55,12 @@ static inline float s2Dot(s2Vec2 a, s2Vec2 b)
 	return a.x * b.x + a.y * b.y;
 }
 
+/// Vector dot product
+static inline float s2Dot3(s2Vec3 a, s2Vec3 b)
+{
+	return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
 /// Vector cross product. In 2D this yields a scalar.
 static inline float s2Cross(s2Vec2 a, s2Vec2 b)
 {

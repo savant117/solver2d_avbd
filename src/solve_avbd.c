@@ -302,12 +302,13 @@ void s2Solve_AVBD(s2World* world, s2StepContext* context)
 
 					s2Vec2 F = s2Add(joint->revoluteJoint.impulse, s2Mul(joint->revoluteJoint.penalty, C));
 
-					s2Vec3 J1, J2;
+					s2Vec3 J1, J2, J3;
 					float H1, H2;
 					if (body == bodyA)
 					{
 						J1 = s2MakeVec3(-1.0f, 0.0f, rA.y);
 						J2 = s2MakeVec3(0.0f, -1.0f, -rA.x);
+						J3 = s2MakeVec3(0.0f, 0.0f, 1.0f);
 						H1 = rA.x;
 						H2 = rA.y;
 					}
@@ -315,12 +316,16 @@ void s2Solve_AVBD(s2World* world, s2StepContext* context)
 					{
 						J1 = s2MakeVec3(1.0f, 0.0f, -rB.y);
 						J2 = s2MakeVec3(0.0f, 1.0f, rB.x);
+						J3 = s2MakeVec3(0.0f, 0.0f, -1.0f);
 						H1 = -rB.x;
 						H2 = -rB.y;
 					}
 
 					rhs = s2MulAdd3(rhs, F.x, J1);
 					rhs = s2MulAdd3(rhs, F.y, J2);
+
+					// TODO motor needs to be a real constraint
+					rhs = s2MulAdd3(rhs, joint->revoluteJoint.maxMotorTorque * (joint->revoluteJoint.motorSpeed < 0 ? -1 : 1), J3);
 
 					lhs = s2AddScaledOuter(lhs, joint->revoluteJoint.penalty.x, J1);
 					lhs = s2AddScaledOuter(lhs, joint->revoluteJoint.penalty.y, J2);

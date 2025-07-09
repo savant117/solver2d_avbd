@@ -330,6 +330,7 @@ void s2UpdateContact(s2World* world, s2Contact* contact, s2Shape* shapeA, s2Body
 		s2ManifoldPoint* mp2 = contact->manifold.points + i;
 		mp2->normalImpulse = 0.0f;
 		mp2->tangentImpulse = 0.0f;
+		mp2->penalty = 0.0f;
 		mp2->persisted = false;
 		uint16_t id2 = mp2->id;
 
@@ -346,6 +347,7 @@ void s2UpdateContact(s2World* world, s2Contact* contact, s2Shape* shapeA, s2Body
 
 				mp2->normalImpulse = mp1->normalImpulse;
 				mp2->tangentImpulse = mp1->tangentImpulse;
+				mp2->penalty = mp1->penalty;
 				mp2->persisted = true;
 				break;
 			}

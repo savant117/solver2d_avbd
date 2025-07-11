@@ -192,10 +192,9 @@ void s2Solve_AVBD(s2World* world, s2StepContext* context)
 			rhs = s2Mul3(rhs, s2MakeVec3(dp.x, dp.y, body->deltaRot - body->deltaInertialRot));
 
 			// Accumulate forces and hessian for contacts
-			// TODO iterate over only contacts connected to body
-			for (int i = 0; i < contactCapacity; ++i)
+			for (int i = body->contactList; i != S2_NULL_INDEX; i = contacts[i >> 1].edges[contacts[i >> 1].edges[0].bodyIndex == bi ? 0 : 1].nextKey)
 			{
-				s2Contact* contact = contacts + i;
+				s2Contact* contact = contacts + (i >> 1);
 				if (s2IsFree(&contact->object) || contact->manifold.pointCount == 0)
 				{
 					continue;
@@ -274,9 +273,9 @@ void s2Solve_AVBD(s2World* world, s2StepContext* context)
 
 			// Accumulate forces and hessian for joints
 			// TODO iterate over only joints connected to body
-			for (int i = 0; i < jointCapacity; ++i)
+			for (int i = body->jointList; i != S2_NULL_INDEX; i = joints[i >> 1].edges[joints[i >> 1].edges[0].bodyIndex == bi ? 0 : 1].nextKey)
 			{
-				s2Joint* joint = joints + i;
+				s2Joint* joint = joints + (i >> 1);
 				if (s2IsFree(&joint->object))
 				{
 					continue;
@@ -495,4 +494,6 @@ void s2Solve_AVBD(s2World* world, s2StepContext* context)
 		body->position = s2Add(body->position, body->deltaPosition);
 		body->rot = s2IntegrateRot(body->rot, body->deltaRot);
 	}
+
+	// TODO Convert forces back to impulses for display
 }
